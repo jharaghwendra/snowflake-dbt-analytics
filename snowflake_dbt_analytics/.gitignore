@@ -1,0 +1,9 @@
+
+target/
+dbt_packages/
+# -----------------------------------------------------------------------
+# Scratch folder — local exploration only, except its README
+# -----------------------------------------------------------------------
+scratch/**
+!scratch/README.md
+
