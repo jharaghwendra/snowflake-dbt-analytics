@@ -31,6 +31,21 @@ clean-targets:         # directories to be removed by `dbt clean`
 # files using the `{{ config(...) }}` macro.
 models:
   snowflake_dbt_analytics:
-    # Config indicated by + and applies to all files under models/example/
-    example:
-      +materialized: view
+    staging:
+      +materialized: table
+      +schema: STAGING
+    intermediate:
+      +materialized: table
+      +schema: INTERMEDIATE
+    mart:
+      +materialized: table
+      +schema: MART
+
+seeds: 
+  snowflake_dbt_analytics:
+    +schema: STAGING    
+
+snapshots:
+  snowflake_dbt_analytics:
+    +target_schema: MART       # snapshots land in MART schema for BI    
+    +invalidate_hard_deletes: true

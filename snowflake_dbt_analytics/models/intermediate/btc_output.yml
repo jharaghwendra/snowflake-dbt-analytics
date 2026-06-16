@@ -1,0 +1,7 @@
+version: 2
+
+models:
+  - name: btc_output
+    tests:
+      - dbt_utils.equal_rowcount:
+          compare_model: ref('btc_output_py')
