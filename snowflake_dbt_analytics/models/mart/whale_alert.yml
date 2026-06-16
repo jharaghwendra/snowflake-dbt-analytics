@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: whale_alert
+    description: "This model identifies large bitcoin transactions..."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: invocation_id
+        description: "Unique identifier for each dbt run invocation."
+        data_type: string
+      - name: output_address
+        data_type: string        
+        tests:
+          - valid_btc_address     
+      - name: whale_alert_value
+        data_type: float
+      - name: whale_alert_count
+        data_type: int
+      - name: btc_price_usd
+        data_type: float

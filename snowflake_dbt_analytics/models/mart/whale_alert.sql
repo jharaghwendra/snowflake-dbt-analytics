@@ -1,5 +1,5 @@
 with whale as (
-    select
+    select     
         output_address,
         sum(output_value) as whale_alert_value,
         count(*) as whale_alert_count
@@ -9,6 +9,7 @@ with whale as (
     order by whale_alert_value desc
 )
 select
+    '{{ invocation_id }}' as invocation_id,
     output_address,
     whale_alert_value,
     whale_alert_count,
