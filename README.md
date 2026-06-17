@@ -37,7 +37,7 @@ s3://aws-public-blockchain/v1.0/btc/transactions/
         │  Snowflake External Stage (STAGE_BTC)
         │  Snowflake Task — COPY INTO every 2 hours
         ▼
-  DBT_ANALYTICS_DEV.LANDING     ← raw BTC table, loaded by Snowflake Task
+      DBT_ANALYTICS_DEV.LANDING     ← raw BTC table, loaded by Snowflake Task
         │
         │  dbt reads LANDING as source
         ▼
@@ -53,20 +53,22 @@ s3://aws-public-blockchain/v1.0/btc/transactions/
      Power BI
 ```
 
+The same layered pattern is repeated for `DBT_ANALYTICS_TEST` and `DBT_ANALYTICS_PROD`; only the active dbt target changes.
+
 ---
 
 ## Snowflake Database & Schema Design
 
-Two databases — one per environment. Each contains four schemas:
+Three databases — one per environment. Each contains the same logical schemas:
 
 ```
-DBT_ANALYTICS_DEV                        DBT_ANALYTICS_PROD
-├── LANDING      ← COPY INTO target      ├── LANDING
-│     Stage: STAGE_BTC                   │     Stage: STAGE_BTC
-│     Table: BTC                         │     Table: BTC
-├── STAGING      ← dbt stg_ models       ├── STAGING
-├── INTERMEDIATE ← dbt int_ models       ├── INTERMEDIATE
-└── MART         ← dbt mart_ models      └── MART
+DBT_ANALYTICS_DEV        DBT_ANALYTICS_TEST       DBT_ANALYTICS_PROD
+├── LANDING              ├── LANDING              ├── LANDING
+│     Stage: STAGE_BTC   │     Stage: STAGE_BTC   │     Stage: STAGE_BTC
+│     Table: BTC         │     Table: BTC         │     Table: BTC
+├── STAGING              ├── STAGING              ├── STAGING
+├── INTERMEDIATE         ├── INTERMEDIATE         ├── INTERMEDIATE
+└── MART                 └── MART                 └── MART
 ```
 
 | Schema | Owner | Purpose |
@@ -78,20 +80,51 @@ DBT_ANALYTICS_DEV                        DBT_ANALYTICS_PROD
 
 > **Note:** `LANDING` is kept source-agnostic (not `BTC_LANDING`) so Ethereum and other blockchain data can be added as separate tables within the same schema later.
 
+### Environment Behavior
+
+- `DEV` is for local and branch-level validation.
+- `TEST` is the shared integration/UAT environment.
+- `PROD` is the production environment used by end users and reporting tools.
+
+The best-practice setup is to keep each environment isolated at the Snowflake database level, even if the upstream landing-zone files are the same.
+
+- `DEV` can use a small or branch-specific dataset.
+- `TEST` should be refreshed from the same upstream files as PROD or by cloning/copying PROD raw data on a schedule.
+- `PROD` should remain the canonical business dataset.
+
 ---
 
 ## dbt Sources Wiring
 
-```yaml
-# models/staging/sources.yml
-sources:
-  - name: landing
-    database: DBT_ANALYTICS_DEV
-    schema: LANDING
-    tables:
-      - name: btc
-      - name: eth   # planned
-```
+Example source mapping:
+
+- `landing.database`: `DBT_ANALYTICS_DEV` when targeting DEV, `DBT_ANALYTICS_TEST` when targeting TEST, and `DBT_ANALYTICS_PROD` when targeting PROD.
+- `landing.schema`: `LANDING`.
+- `landing.tables`: `btc` now, `eth` later.
+
+For CI/CD, the dbt target should point at the matching environment database:
+
+- PR validation: `DBT_ANALYTICS_DEV` or a dedicated PR schema/database, depending on how isolated you want branch testing to be.
+- Post-merge validation: `DBT_ANALYTICS_TEST`.
+- Release deployment: `DBT_ANALYTICS_PROD`.
+
+This keeps source definitions stable while allowing the active dbt target to control which environment is read and written.
+
+---
+
+## Recommended CI/CD Flow
+
+1. Create a feature branch from `main`.
+2. Open a Pull Request.
+3. CI runs automatically against an isolated non-production target.
+4. Review and approve the PR.
+5. Merge the PR into `main`.
+6. CD deploys the approved code to `TEST`.
+7. Run dbt validation in `TEST`.
+8. GitHub Environment protection pauses `PROD` for manual approval.
+9. After approval, deploy the same release to `PROD`.
+
+If `TEST` is used as UAT, it should not query `PROD` source schemas directly. Keep `TEST` source schemas isolated and refresh them from the same landing-zone inputs or via controlled cloning/copying.
 
 ---
 

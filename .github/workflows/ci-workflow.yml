@@ -5,19 +5,21 @@ on:
     branches:
       - main
     types:
-      - closed
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
 
 permissions:
   contents: read
 
 concurrency:
   group: snowflake-dbt-dev-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  deploy-dev:
-    name: Deploy dbt project to DEV
-    if: github.event.pull_request.merged == true
+  ci-deploy-dev:
+    name: Validate dbt project in DEV
     runs-on: ubuntu-latest
     environment: DEV
 
@@ -61,16 +63,6 @@ jobs:
                 role: "$SNOWFLAKE_ROLE"
                 warehouse: "$SNOWFLAKE_WAREHOUSE"
                 database: "$SNOWFLAKE_DATABASE"
-                schema: STAGING
-                threads: 1
-                private_key_path: /home/runner/.dbt/rsa_key.p8
-              prod:
-                type: snowflake
-                account: "$SNOWFLAKE_ACCOUNT"
-                user: "$SNOWFLAKE_USER"
-                role: "$SNOWFLAKE_ROLE"
-                warehouse: "$SNOWFLAKE_WAREHOUSE"
-                database: "${{ secrets.SNOWFLAKE_DATABASE_PROD }}"
                 schema: STAGING
                 threads: 1
                 private_key_path: /home/runner/.dbt/rsa_key.p8
