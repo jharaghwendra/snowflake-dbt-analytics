@@ -6,7 +6,6 @@ with whale as (
     from {{ ref('btc_non_coinbase_transactions') }}
     where output_value > 10
     group by output_address
-    order by whale_alert_value desc
 )
 select
     '{{ invocation_id }}' as invocation_id,
@@ -15,4 +14,3 @@ select
     whale_alert_count,
     {{ convert_to_usd('whale_alert_value') }} as btc_price_usd
 from whale
-order by whale_alert_value desc

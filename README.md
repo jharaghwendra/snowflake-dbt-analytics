@@ -156,13 +156,13 @@ Possible resume bullet:
 ```
 snowflake_dbt_analytics/       ← dbt project root
 ├── models/
-│   ├── staging/               ← stg_ models (coming soon)
-│   ├── intermediate/          ← int_ models (coming soon)
-│   └── mart/                  ← mart_ models (coming soon)
-│   └── sources/                  ← mart_ models (coming soon)
-│   │     └── src_staging.yml
+│   ├── staging/               ← stg_ models, sources, tests
+│   ├── intermediate/          ← int_ models
+│   └── mart/                  ← mart_ models
+│   └── sources/
+│         └── src_staging.yml
 ├── seeds/
-├── snapshots/
+├── snapshots/                 ← reserved for future SCD2 snapshots
 ├── tests/
 ├── macros/
 └── dbt_project.yml
@@ -175,14 +175,16 @@ snowflake_dbt_analytics/       ← dbt project root
 - [x] Project initialised (dbt init + Snowflake connection)
 - [x] Snowflake connection verified (`dbt debug`)
 - [x] Database & schema design finalised
-- [ ] Snowflake LANDING schema + STAGE_BTC + BTC table created
-- [ ] Snowflake Task configured (COPY INTO every 2 hours)
-- [ ] BTC data loaded into LANDING.BTC
-- [ ] Staging models (`stg_btc_transactions`)
-- [ ] Intermediate models
-- [ ] Mart models
-- [ ] dbt tests and documentation
-- [ ] Power BI connection
+- [x] Snowflake LANDING schema + STAGE_BTC + BTC table created
+- [x] Snowflake Task configured (COPY INTO every 2 hours)
+- [x] BTC data loaded into LANDING.BTC
+- [x] Staging models (`stg_btc_transactions`)
+- [x] Intermediate models (`btc_output`, `btc_non_coinbase_transactions`)
+- [x] Mart models (`whale_alert`)
+- [x] dbt tests and macros (`btc_utils`, `test_valid_btc_address`, `equal_rowcount`)
+- [x] CI/CD via GitHub Actions (DEV/TEST/PROD with approval gate)
+- [ ] Power BI connection (planned)
+- [ ] Ethereum data (planned)
 
 ---
 
