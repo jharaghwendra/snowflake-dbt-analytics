@@ -4,6 +4,7 @@ models:
   - name: btc_output
     tests:
       - dbt_utils.equal_rowcount:
-          compare_model: ref('btc_output_py')
+          arguments:
+            compare_model: ref('btc_output_py')
           config:
             severity: warn
