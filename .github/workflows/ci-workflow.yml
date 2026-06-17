@@ -1,20 +1,15 @@
 name: Snowflake dbt DEV CI
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
+      - 'feature/**'
 
 permissions:
   contents: read
 
 concurrency:
-  group: snowflake-dbt-dev-${{ github.event.pull_request.number }}
+  group: snowflake-dbt-dev-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
