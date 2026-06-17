@@ -1,6 +1,6 @@
 # Snowflake dbt Analytics
 
-A portfolio Data Engineering project built with **dbt Core** and **Snowflake**, demonstrating a full layered analytics architecture (Landing → Staging → Intermediate → Mart) using real-world blockchain financial data.
+A portfolio Data Engineering project built with **dbt Core** and **Snowflake**, demonstrating a full layered analytics architecture (Landing → Staging → Intermediate → Mart) using real-world blockchain financial data. It is structured as a resume-ready project that shows end-to-end ownership of ingestion, modeling, testing, and CI/CD promotion across DEV, TEST, and PROD.
 
 ---
 
@@ -9,6 +9,12 @@ A portfolio Data Engineering project built with **dbt Core** and **Snowflake**, 
 This project ingests and transforms **Bitcoin (BTC) historical transaction data** sourced from a public AWS S3 bucket (`s3://aws-public-blockchain/v1.0/btc/`) into Snowflake, and models it through dbt layers to produce clean, analytics-ready tables.
 
 Ingestion is handled by a **Snowflake Task** running on a 2-hour schedule using `COPY INTO` from an external S3 stage. dbt then picks up from the landing layer and transforms the data through three model layers.
+
+The repository also includes GitHub Actions-based CI/CD:
+
+- feature-branch commits validate changes in DEV,
+- merges to `main` deploy to TEST,
+- successful TEST runs pause before PROD until the GitHub Environment approval gate is completed.
 
 It is designed as a growing portfolio project — Ethereum data and additional models will be added incrementally.
 
@@ -25,6 +31,7 @@ It is designed as a growing portfolio project — Ethereum data and additional m
 | File Format | Parquet (`.snappy.parquet`) |
 | Language | SQL |
 | Environment | Python venv + dbt-snowflake |
+| CI/CD | GitHub Actions with DEV validation, TEST promotion, and PROD approval gate |
 | Visualisation | Power BI (planned) |
 
 ---
@@ -37,7 +44,7 @@ s3://aws-public-blockchain/v1.0/btc/transactions/
         │  Snowflake External Stage (STAGE_BTC)
         │  Snowflake Task — COPY INTO every 2 hours
         ▼
-  DBT_ANALYTICS_DEV.LANDING     ← raw BTC table, loaded by Snowflake Task
+      DBT_ANALYTICS_DEV.LANDING     ← raw BTC table, loaded by Snowflake Task
         │
         │  dbt reads LANDING as source
         ▼
@@ -53,20 +60,22 @@ s3://aws-public-blockchain/v1.0/btc/transactions/
      Power BI
 ```
 
+The same layered pattern is repeated for `DBT_ANALYTICS_TEST` and `DBT_ANALYTICS_PROD`; only the active dbt target changes.
+
 ---
 
 ## Snowflake Database & Schema Design
 
-Two databases — one per environment. Each contains four schemas:
+Three databases — one per environment. Each contains the same logical schemas:
 
 ```
-DBT_ANALYTICS_DEV                        DBT_ANALYTICS_PROD
-├── LANDING      ← COPY INTO target      ├── LANDING
-│     Stage: STAGE_BTC                   │     Stage: STAGE_BTC
-│     Table: BTC                         │     Table: BTC
-├── STAGING      ← dbt stg_ models       ├── STAGING
-├── INTERMEDIATE ← dbt int_ models       ├── INTERMEDIATE
-└── MART         ← dbt mart_ models      └── MART
+DBT_ANALYTICS_DEV        DBT_ANALYTICS_TEST       DBT_ANALYTICS_PROD
+├── LANDING              ├── LANDING              ├── LANDING
+│     Stage: STAGE_BTC   │     Stage: STAGE_BTC   │     Stage: STAGE_BTC
+│     Table: BTC         │     Table: BTC         │     Table: BTC
+├── STAGING              ├── STAGING              ├── STAGING
+├── INTERMEDIATE         ├── INTERMEDIATE         ├── INTERMEDIATE
+└── MART                 └── MART                 └── MART
 ```
 
 | Schema | Owner | Purpose |
@@ -78,20 +87,67 @@ DBT_ANALYTICS_DEV                        DBT_ANALYTICS_PROD
 
 > **Note:** `LANDING` is kept source-agnostic (not `BTC_LANDING`) so Ethereum and other blockchain data can be added as separate tables within the same schema later.
 
+### Environment Behavior
+
+- `DEV` is for local and branch-level validation.
+- `TEST` is the shared integration/UAT environment.
+- `PROD` is the production environment used by end users and reporting tools.
+
+The best-practice setup is to keep each environment isolated at the Snowflake database level, even if the upstream landing-zone files are the same.
+
+- `DEV` can use a small or branch-specific dataset.
+- `TEST` should be refreshed from the same upstream files as PROD or by cloning/copying PROD raw data on a schedule.
+- `PROD` should remain the canonical business dataset.
+
 ---
 
 ## dbt Sources Wiring
 
-```yaml
-# models/staging/sources.yml
-sources:
-  - name: landing
-    database: DBT_ANALYTICS_DEV
-    schema: LANDING
-    tables:
-      - name: btc
-      - name: eth   # planned
-```
+Example source mapping:
+
+- `landing.database`: `DBT_ANALYTICS_DEV` when targeting DEV, `DBT_ANALYTICS_TEST` when targeting TEST, and `DBT_ANALYTICS_PROD` when targeting PROD.
+- `landing.schema`: `LANDING`.
+- `landing.tables`: `btc` now, `eth` later.
+
+For CI/CD, the dbt target should point at the matching environment database:
+
+- PR validation: `DBT_ANALYTICS_DEV` or a dedicated PR schema/database, depending on how isolated you want branch testing to be.
+- Post-merge validation: `DBT_ANALYTICS_TEST`.
+- Release deployment: `DBT_ANALYTICS_PROD`.
+
+This keeps source definitions stable while allowing the active dbt target to control which environment is read and written.
+
+---
+
+## Recommended CI/CD Flow
+
+1. Create a feature branch from `main`.
+2. Open a Pull Request.
+3. CI runs automatically against an isolated non-production target.
+4. Review and approve the PR.
+5. Merge the PR into `main`.
+6. CD deploys the approved code to `TEST`.
+7. Run dbt validation in `TEST`.
+8. GitHub Environment protection pauses `PROD` for manual approval.
+9. After approval, deploy the same release to `PROD`.
+
+If `TEST` is used as UAT, it should not query `PROD` source schemas directly. Keep `TEST` source schemas isolated and refresh them from the same landing-zone inputs or via controlled cloning/copying.
+
+---
+
+## Portfolio Positioning
+
+Use this project in a resume or hiring-manager discussion as a concrete example of:
+
+- designing a Snowflake + dbt layered analytics model,
+- building and validating incremental transformations and data-quality checks,
+- wiring environment-specific dbt targets for DEV, TEST, and PROD,
+- promoting code through a controlled GitHub Actions release flow,
+- reasoning clearly about data isolation between environments.
+
+Possible resume bullet:
+
+- Built and maintained a Snowflake + dbt analytics pipeline for Bitcoin transaction data with layered Landing/Staging/Intermediate/Mart models, environment-specific DEV/TEST/PROD promotion, and GitHub Actions CI/CD with approval-gated PROD deployment.
 
 ---
 

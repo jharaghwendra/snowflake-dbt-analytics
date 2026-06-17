@@ -1,23 +1,88 @@
 name: Snowflake dbt PROD CD
 
 on:
-  workflow_run:
-    workflows:
-      - Snowflake dbt DEV CI
+  push:
     branches:
       - main
-    types:
-      - completed
 
 permissions:
   contents: read
 
 jobs:
-  deploy-prod:
+  cd-deploy-test:
+    name: Deploy dbt project to TEST
+    runs-on: ubuntu-latest
+    environment: TEST
+
+    env:
+      DBT_PROFILES_DIR: /home/runner/.dbt
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE_TEST }}
+      SNOWFLAKE_PRIVATE_KEY_B64: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_B64 }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dbt packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-core==1.11.11 dbt-snowflake==1.11.2
+
+      - name: Configure dbt profile and Snowflake private key
+        run: |
+          mkdir -p ~/.dbt
+          printf '%s' "$SNOWFLAKE_PRIVATE_KEY_B64" | base64 -d > ~/.dbt/rsa_key.p8
+          chmod 600 ~/.dbt/rsa_key.p8
+
+          cat > ~/.dbt/profiles.yml <<EOF
+          snowflake_dbt_analytics:
+            target: test
+            outputs:
+              test:
+                type: snowflake
+                account: "$SNOWFLAKE_ACCOUNT"
+                user: "$SNOWFLAKE_USER"
+                role: "$SNOWFLAKE_ROLE"
+                warehouse: "$SNOWFLAKE_WAREHOUSE"
+                database: "$SNOWFLAKE_DATABASE_TEST"
+                schema: STAGING
+                threads: 1
+                private_key_path: /home/runner/.dbt/rsa_key.p8
+          EOF
+
+      - name: Install dbt dependencies
+        working-directory: snowflake_dbt_analytics
+        run: dbt deps
+
+      - name: Validate dbt connection
+        working-directory: snowflake_dbt_analytics
+        run: dbt debug --target test
+
+      - name: Deploy to TEST
+        working-directory: snowflake_dbt_analytics
+        run: dbt build --target test
+
+      - name: Run dbt tests in TEST
+        working-directory: snowflake_dbt_analytics
+        run: dbt test --target test
+
+  cd-deploy-prod:
     name: Deploy dbt project to PROD
-    if: github.event.workflow_run.conclusion == 'success'
+    needs: cd-deploy-test
     runs-on: ubuntu-latest
     environment: PROD
+
+    # GitHub Environment protection on PROD should require reviewers.
+    # That is what pauses this job and sends the approval notification.
 
     env:
       DBT_PROFILES_DIR: /home/runner/.dbt
@@ -52,23 +117,13 @@ jobs:
           snowflake_dbt_analytics:
             target: prod
             outputs:
-              dev:
-                type: snowflake
-                account: "$SNOWFLAKE_ACCOUNT"
-                user: "$SNOWFLAKE_USER"
-                role: "$SNOWFLAKE_ROLE"
-                warehouse: "$SNOWFLAKE_WAREHOUSE"
-                database: "${{ secrets.SNOWFLAKE_DATABASE_DEV }}"
-                schema: STAGING
-                threads: 1
-                private_key_path: /home/runner/.dbt/rsa_key.p8
               prod:
                 type: snowflake
                 account: "$SNOWFLAKE_ACCOUNT"
                 user: "$SNOWFLAKE_USER"
                 role: "$SNOWFLAKE_ROLE"
                 warehouse: "$SNOWFLAKE_WAREHOUSE"
-                database: "$SNOWFLAKE_DATABASE"
+                database: "$SNOWFLAKE_DATABASE_PROD"
                 schema: STAGING
                 threads: 1
                 private_key_path: /home/runner/.dbt/rsa_key.p8
