@@ -24,7 +24,7 @@ jobs:
       SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
       SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
       SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE_DEV }}
+      SNOWFLAKE_DATABASE_DEV: ${{ secrets.SNOWFLAKE_DATABASE_DEV }}
       SNOWFLAKE_PRIVATE_KEY_B64: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_B64 }}
 
     steps:
@@ -57,7 +57,7 @@ jobs:
                 user: "$SNOWFLAKE_USER"
                 role: "$SNOWFLAKE_ROLE"
                 warehouse: "$SNOWFLAKE_WAREHOUSE"
-                database: "$SNOWFLAKE_DATABASE"
+                database: "$SNOWFLAKE_DATABASE_DEV"
                 schema: STAGING
                 threads: 1
                 private_key_path: /home/runner/.dbt/rsa_key.p8
