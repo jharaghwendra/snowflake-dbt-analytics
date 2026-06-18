@@ -33,7 +33,7 @@ select
         when s.customers = 0 then null
         else s.sales / s.customers
     end as sales_per_customer,
-    convert_timezone('UTC', 'Europe/Paris', current_timestamp()) as last_updated_at
+    convert_timezone('UTC', 'Europe/Berlin', current_timestamp()) as last_updated_at
 from sales_data s
 left join store_lookup st
     on s.store_id = st.store_id
