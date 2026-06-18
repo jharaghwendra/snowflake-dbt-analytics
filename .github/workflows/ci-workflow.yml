@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - 'feature/**'
+  workflow_dispatch:
+
+    inputs:
+      run_dbt_checks:
+        description: 'Run Snowflake dbt validation steps'
+        required: false
+        default: 'false'
 
 permissions:
   contents: read
@@ -17,6 +24,7 @@ jobs:
     name: Validate dbt project in DEV
     runs-on: ubuntu-latest
     environment: DEV
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_dbt_checks == 'true' }}
 
     env:
       DBT_PROFILES_DIR: /home/runner/.dbt
