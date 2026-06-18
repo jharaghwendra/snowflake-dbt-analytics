@@ -1,0 +1,52 @@
+version: 2
+
+sources:
+  - name: landing
+    database: "{{ target.database }}"
+    schema: landing
+    description: "Snowflake landing schema for the Rossmann retail raw data."
+    tables:
+      - name: retail_rm_sales
+        description: "Landing table for Rossmann daily sales raw data from train.csv."
+        columns:
+          - name: store
+            description: "Store identifier."
+          - name: dayofweek
+            description: "Day of week from 1 to 7."
+          - name: date
+            description: "Sales date."
+          - name: sales
+            description: "Daily sales amount."
+          - name: customers
+            description: "Daily customer count."
+          - name: open
+            description: "Whether the store was open."
+          - name: promo
+            description: "Whether a promo was active."
+          - name: stateholiday
+            description: "State holiday flag."
+          - name: schoolholiday
+            description: "Whether school holiday was active."
+      - name: retail_rm_store
+        description: "Landing table for Rossmann store metadata raw data from store.csv."
+        columns:
+          - name: store
+            description: "Store identifier."
+          - name: storetype
+            description: "Store type."
+          - name: assortment
+            description: "Assortment type."
+          - name: competitiondistance
+            description: "Distance to nearest competitor."
+          - name: competitionopensincemonth
+            description: "Month when competition opened."
+          - name: competitionopensinceyear
+            description: "Year when competition opened."
+          - name: promo2
+            description: "Whether promo2 is active."
+          - name: promo2sinceweek
+            description: "Week when promo2 started."
+          - name: promo2sinceyear
+            description: "Year when promo2 started."
+          - name: promointerval
+            description: "Months when promo2 is active."
