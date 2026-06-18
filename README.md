@@ -1,217 +1,441 @@
 # Snowflake dbt Analytics
 
-A portfolio Data Engineering project built with **dbt Core** and **Snowflake**, demonstrating a full layered analytics architecture (Landing → Staging → Intermediate → Mart) using real-world blockchain financial data. It is structured as a resume-ready project that shows end-to-end ownership of ingestion, modeling, testing, and CI/CD promotion across DEV, TEST, and PROD.
+This repository contains two sample data engineering projects built with **Snowflake**, **dbt Core**, and **GitHub Actions**.
+
+1. **Bitcoin Data Analytics Pipeline** - a Snowflake + dbt pipeline for blockchain transaction data.
+2. **Rossmann Store Sales Analytics Project** - a Snowflake + dbt pipeline for retail warehouse design based on the public Kaggle Rossmann Store Sales dataset.
+
+The repository is organized so that someone can study the folder structure, dbt layers, Snowflake setup, and workflow files in one place.
 
 ---
 
-## Project Overview
+## Overview
 
-This project ingests and transforms **Bitcoin (BTC) historical transaction data** sourced from a public AWS S3 bucket (`s3://aws-public-blockchain/v1.0/btc/`) into Snowflake, and models it through dbt layers to produce clean, analytics-ready tables.
+This repository contains examples of loading data into Snowflake, transforming it with dbt, testing it, and moving it through environments with GitHub Actions.
 
-Ingestion is handled by a **Snowflake Task** running on a 2-hour schedule using `COPY INTO` from an external S3 stage. dbt then picks up from the landing layer and transforms the data through three model layers.
+- **Bitcoin project**: public blockchain data loaded into Snowflake and modeled through landing, staging, intermediate, and mart layers.
+- **Rossmann project**: retail sales data modeled into a forecasting-ready Snowflake + dbt warehouse.
+- **Automation**: GitHub Actions workflow files for DEV validation and TEST/PROD deployment.
 
-The repository also includes GitHub Actions-based CI/CD:
+---
 
-- feature-branch commits validate changes in DEV,
-- merges to `main` deploy to TEST,
-- successful TEST runs pause before PROD until the GitHub Environment approval gate is completed.
+## Architecture Overview
 
-It is designed as a growing portfolio project — Ethereum data and additional models will be added incrementally.
+```mermaid
+flowchart TB
+  subgraph Bitcoin[Bitcoin Data Analytics Pipeline]
+    BTC_SRC[Public AWS S3 Blockchain Data]
+    BTC_LANDING[Snowflake LANDING]
+    BTC_STG[dbt STAGING]
+    BTC_INT[dbt INTERMEDIATE]
+    BTC_MART[dbt MART]
+    BTC_BI[Reporting / Analytics]
+    BTC_SRC --> BTC_LANDING --> BTC_STG --> BTC_INT --> BTC_MART --> BTC_BI
+  end
+
+  subgraph Rossmann[Rossmann Store Sales Analytics Project]
+    RM_SRC[Kaggle Rossmann CSVs]
+    RM_LANDING[Snowflake RETAIL_LANDING]
+    RM_STG[dbt retail staging]
+    RM_INT[dbt retail intermediate]
+    RM_MART[dbt retail marts]
+    RM_BI[Forecasting / BI Use Cases]
+    RM_SRC --> RM_LANDING --> RM_STG --> RM_INT --> RM_MART --> RM_BI
+  end
+
+  GH[GitHub Actions CI/CD]
+  GH -. validates / deploys .-> BTC_MART
+  GH -. validates / deploys .-> RM_MART
+```
+
+The Bitcoin pipeline and the Rossmann project both follow the same Snowflake + dbt pattern.
 
 ---
 
 ## Tech Stack
 
 | Component | Technology |
-|-----------|-----------|
+|-----------|------------|
 | Data Warehouse | Snowflake |
 | Transformation | dbt Core |
-| Source Data | Bitcoin historical transactions — public AWS S3 (`aws-public-blockchain`) |
-| Ingestion | Snowflake External Stage + COPY INTO + Snowflake Task (2-hour schedule) |
-| File Format | Parquet (`.snappy.parquet`) |
-| Language | SQL |
-| Environment | Python venv + dbt-snowflake |
-| CI/CD | GitHub Actions with DEV validation, TEST promotion, and PROD approval gate |
-| Visualisation | Power BI (planned) |
+| CI/CD | GitHub Actions |
+| Language | SQL, Python |
+| Environment | Python virtual environment + `dbt-snowflake` |
+| Source Data | Bitcoin blockchain public data, Kaggle Rossmann Store Sales |
+| Modeling Style | Landing, Staging, Intermediate, Mart |
+| Advanced Modeling | Snapshots, incremental models, dbt tests |
 
 ---
 
-## Architecture
+## Project 1: Bitcoin Data Analytics Pipeline
 
-```
-s3://aws-public-blockchain/v1.0/btc/transactions/
-        │
-        │  Snowflake External Stage (STAGE_BTC)
-        │  Snowflake Task — COPY INTO every 2 hours
-        ▼
-      DBT_ANALYTICS_DEV.LANDING     ← raw BTC table, loaded by Snowflake Task
-        │
-        │  dbt reads LANDING as source
-        ▼
-  DBT_ANALYTICS_DEV.STAGING     ← dbt stg_ models (standardise, rename, cast types)
-        │
-        ▼
-  DBT_ANALYTICS_DEV.INTERMEDIATE ← dbt int_ models (business logic, transformations)
-        │
-        ▼
-  DBT_ANALYTICS_DEV.MART        ← dbt mart_ models (analytics-ready, reporting)
-        │
-        ▼
-     Power BI
+### Scope
+
+The Bitcoin project ingests public blockchain data from AWS and transforms it into Snowflake analytics layers for downstream reporting and analysis.
+
+### Data Flow
+
+```mermaid
+flowchart TB
+  A[Public AWS S3 BTC files] --> B[Snowflake External Stage]
+  B --> C[Snowflake Task / COPY INTO]
+  C --> D[LANDING schema]
+  D --> E[dbt STAGING models]
+  E --> F[dbt INTERMEDIATE models]
+  F --> G[dbt MART models]
+  G --> H[Analytics / reporting]
 ```
 
-The same layered pattern is repeated for `DBT_ANALYTICS_TEST` and `DBT_ANALYTICS_PROD`; only the active dbt target changes.
+- Snowflake landing-zone ingestion using staged files and scheduled loading.
+- dbt source definitions and layered transformations.
+- Data-quality tests and reusable macros.
+- Environment-specific promotion through GitHub Actions.
+- A layered analytics warehouse structure.
 
 ---
 
-## Snowflake Database & Schema Design
+## Project 2: Rossmann Store Sales Analytics Project
 
-Three databases — one per environment. Each contains the same logical schemas:
+### Scope
 
-```
-DBT_ANALYTICS_DEV        DBT_ANALYTICS_TEST       DBT_ANALYTICS_PROD
-├── LANDING              ├── LANDING              ├── LANDING
-│     Stage: STAGE_BTC   │     Stage: STAGE_BTC   │     Stage: STAGE_BTC
-│     Table: BTC         │     Table: BTC         │     Table: BTC
-├── STAGING              ├── STAGING              ├── STAGING
-├── INTERMEDIATE         ├── INTERMEDIATE         ├── INTERMEDIATE
-└── MART                 └── MART                 └── MART
-```
+The Rossmann project uses the public **Kaggle Rossmann Store Sales** dataset. It is a retail forecasting warehouse.
 
-| Schema | Owner | Purpose |
-|--------|-------|---------|
-| `LANDING` | Snowflake Task | Raw data loaded directly from S3 via COPY INTO. dbt never writes here — only reads. |
-| `STAGING` | dbt | Standardise column names, cast types, light cleaning. One model per source table. |
-| `INTERMEDIATE` | dbt | Business logic, joins, reusable transformations. Not exposed to BI tools. |
-| `MART` | dbt | Final analytics-ready tables consumed by Power BI. |
+### Why Rossmann
 
-> **Note:** `LANDING` is kept source-agnostic (not `BTC_LANDING`) so Ethereum and other blockchain data can be added as separate tables within the same schema later.
+Rossmann includes:
 
-### Environment Behavior
+- daily store-level sales,
+- promotion signals,
+- holiday effects,
+- store metadata,
+- forecasting and replenishment-style business use cases.
 
-- `DEV` is for local and branch-level validation.
-- `TEST` is the shared integration/UAT environment.
-- `PROD` is the production environment used by end users and reporting tools.
+This makes it suitable for retail forecasting, store performance analysis, and BI reporting.
 
-The best-practice setup is to keep each environment isolated at the Snowflake database level, even if the upstream landing-zone files are the same.
+### Planned Rossmann architecture
 
-- `DEV` can use a small or branch-specific dataset.
-- `TEST` should be refreshed from the same upstream files as PROD or by cloning/copying PROD raw data on a schedule.
-- `PROD` should remain the canonical business dataset.
-
----
-
-## dbt Sources Wiring
-
-Example source mapping:
-
-- `landing.database`: `DBT_ANALYTICS_DEV` when targeting DEV, `DBT_ANALYTICS_TEST` when targeting TEST, and `DBT_ANALYTICS_PROD` when targeting PROD.
-- `landing.schema`: `LANDING`.
-- `landing.tables`: `btc` now, `eth` later.
-
-For CI/CD, the dbt target should point at the matching environment database:
-
-- PR validation: `DBT_ANALYTICS_DEV` or a dedicated PR schema/database, depending on how isolated you want branch testing to be.
-- Post-merge validation: `DBT_ANALYTICS_TEST`.
-- Release deployment: `DBT_ANALYTICS_PROD`.
-
-This keeps source definitions stable while allowing the active dbt target to control which environment is read and written.
-
----
-
-## Recommended CI/CD Flow
-
-1. Create a feature branch from `main`.
-2. Open a Pull Request.
-3. CI runs automatically against an isolated non-production target.
-4. Review and approve the PR.
-5. Merge the PR into `main`.
-6. CD deploys the approved code to `TEST`.
-7. Run dbt validation in `TEST`.
-8. GitHub Environment protection pauses `PROD` for manual approval.
-9. After approval, deploy the same release to `PROD`.
-
-If `TEST` is used as UAT, it should not query `PROD` source schemas directly. Keep `TEST` source schemas isolated and refresh them from the same landing-zone inputs or via controlled cloning/copying.
-
----
-
-## Portfolio Positioning
-
-Use this project in a resume or hiring-manager discussion as a concrete example of:
-
-- designing a Snowflake + dbt layered analytics model,
-- building and validating incremental transformations and data-quality checks,
-- wiring environment-specific dbt targets for DEV, TEST, and PROD,
-- promoting code through a controlled GitHub Actions release flow,
-- reasoning clearly about data isolation between environments.
-
-Possible resume bullet:
-
-- Built and maintained a Snowflake + dbt analytics pipeline for Bitcoin transaction data with layered Landing/Staging/Intermediate/Mart models, environment-specific DEV/TEST/PROD promotion, and GitHub Actions CI/CD with approval-gated PROD deployment.
-
----
-
-## Project Structure
-
-```
-snowflake_dbt_analytics/       ← dbt project root
-├── models/
-│   ├── staging/               ← stg_ models, sources, tests
-│   ├── intermediate/          ← int_ models
-│   └── mart/                  ← mart_ models
-│   └── sources/
-│         └── src_staging.yml
-├── seeds/
-├── snapshots/                 ← reserved for future SCD2 snapshots
-├── tests/
-├── macros/
-└── dbt_project.yml
+```mermaid
+flowchart TB
+  A[Kaggle Rossmann CSVs train.csv + store.csv] --> B[Python download / upload script]
+  B --> C[Snowflake RETAIL_LANDING]
+  C --> D[dbt RETAIL_STAGING]
+  D --> E[dbt RETAIL_INTERMEDIATE]
+  E --> F[dbt RETAIL_MART]
+  F --> G[Retail BI / forecasting use cases]
 ```
 
+### Retail use cases
+
+The Rossmann mart is designed to support:
+
+- total sales by day, week, month, and quarter,
+- customer count and footfall analysis,
+- sales per customer,
+- open store coverage and trading availability,
+- weekend versus weekday comparisons,
+- holiday impact analysis,
+- promotion uplift analysis,
+- store comparison by type and assortment,
+- competition impact analysis,
+- forecast versus actual tracking.
+
+### Retail star schema
+
+The target retail model design includes:
+
+- `dim_store`
+- `dim_date`
+- `dim_promotion`
+- `fact_daily_sales`
+- `fact_sales_forecast`
+
+### Rossmann implementation plan
+
+The Rossmann implementation is organized into six steps:
+
+1. Download and upload Kaggle data.
+2. Build dbt staging models.
+3. Build dbt intermediate models.
+4. Build dbt mart models.
+5. Add dbt tests and documentation.
+6. Add an SCD2-style snapshot for store attribute tracking.
+
+### Rossmann step details
+
+- Download `train.csv`, `store.csv`, and optionally `test.csv` from Kaggle using a Python helper script.
+- Upload the raw files into a Snowflake internal stage such as `RETAIL_STAGE`.
+- Create landing tables and load them with `COPY INTO`.
+- Build staging models that only read from landing and keep the raw grain intact.
+- Build intermediate models that cast dates, rename columns to snake case, and derive holiday and promotion context.
+- Build mart models for `dim_store`, `dim_date`, `dim_promotion`, `fact_daily_sales`, and `fact_sales_forecast`.
+- Add tests for uniqueness, not-null, and sales-quality checks.
+- Add a snapshot to track slowly changing store attributes such as competition distance and recurring promotion status.
+
 ---
 
-## Status
+## Snowflake Databases and Schemas
 
-- [x] Project initialised (dbt init + Snowflake connection)
-- [x] Snowflake connection verified (`dbt debug`)
-- [x] Database & schema design finalised
-- [x] Snowflake LANDING schema + STAGE_BTC + BTC table created
-- [x] Snowflake Task configured (COPY INTO every 2 hours)
-- [x] BTC data loaded into LANDING.BTC
-- [x] Staging models (`stg_btc_transactions`)
-- [x] Intermediate models (`btc_output`, `btc_non_coinbase_transactions`)
-- [x] Mart models (`whale_alert`)
-- [x] dbt tests and macros (`btc_utils`, `test_valid_btc_address`, `equal_rowcount`)
-- [x] CI/CD via GitHub Actions (DEV/TEST/PROD with approval gate)
-- [ ] Power BI connection (planned)
-- [ ] Ethereum data (planned)
+The repository uses the same layered pattern for both domains.
+
+### Bitcoin project schemas
+
+The Bitcoin project uses environment-specific Snowflake databases with the following logical schemas:
+
+- `LANDING`
+- `STAGING`
+- `INTERMEDIATE`
+- `MART`
+
+The exact database name changes by environment, for example:
+
+- `DBT_ANALYTICS_DEV`
+- `DBT_ANALYTICS_TEST`
+- `DBT_ANALYTICS_PROD`
+
+### Rossmann project schemas
+
+The Rossmann retail design follows the same warehouse pattern, but with retail-specific schema names:
+
+- `RETAIL_LANDING`
+- `RETAIL_STAGING`
+- `RETAIL_INTERMEDIATE`
+- `RETAIL_MART`
+
+### Environment strategy
+
+- `DEV` is used for branch-level validation and local testing.
+- `TEST` is used for integration and release verification.
+- `PROD` is environment protected.
 
 ---
 
-## Setup
+## dbt Model Organization
+
+The repository follows a clear multi-domain structure.
+
+```text
+snowflake_dbt_analytics/
+├── snowflake_dbt_analytics/
+│   ├── models/
+│   │   ├── staging/
+│   │   │   ├── btc/
+│   │   │   └── retail/
+│   │   ├── intermediate/
+│   │   │   ├── btc/
+│   │   │   └── retail/
+│   │   ├── mart/
+│   │   │   ├── btc/
+│   │   │   └── retail/
+│   │   └── sources/
+│   │       ├── btc/
+│   │       └── retail/
+│   ├── snapshots/
+│   │   └── retail/
+│   ├── tests/
+│   ├── macros/
+│   ├── seeds/
+│   └── dbt_project.yml
+├── .github/
+│   └── workflows/
+│       ├── ci-workflow.yml
+│       └── cd-workflow.yml
+```
+
+### Bitcoin dbt layers
+
+- **staging**: standardize and clean BTC source data.
+- **intermediate**: apply business logic and reusable transformations.
+- **mart**: expose analytics-ready tables.
+
+### Rossmann dbt layers
+
+- **staging**: load raw retail landing tables with minimal transformation.
+- **intermediate**: cast types, normalize fields, and derive date / promotion context.
+- **mart**: build the retail star schema and forecasting tables.
+
+### Rossmann folder layout
+
+The retail project fits into the existing dbt structure under these folders:
+
+- `models/staging/retail`
+- `models/intermediate/retail`
+- `models/mart/retail`
+- `models/sources/retail`
+- `snapshots/retail`
+
+### Seeds folder
+
+The `seeds/` folder contains small CSV files that dbt can load as tables.
+
+- `seeds/btc_usd_max.csv`: a seed file used by the Bitcoin project for reference data.
+
+If a seed file is not used yet, it can still stay in the repository as sample data for later exercises.
+
+### Rossmann star schema details
+
+The retail mart is intended to support the following core tables and analytics fields:
+
+- `dim_store`: `store_sk`, `store_id`, `store_type`, `assortment`, `competition_distance_m`, `competition_open_since_year`, `competition_open_since_month`, `has_promo2`, `promo2_since_week`, `promo2_since_year`
+- `dim_date`: `date_sk`, `full_date`, `day_of_week`, `day_name`, `week_of_year`, `month_number`, `month_name`, `quarter`, `year`, `is_weekend`, `is_holiday`
+- `dim_promotion`: `promo_sk`, `promo_type`, `promo_description`
+- `fact_daily_sales`: `sales_sk`, `store_sk`, `date_sk`, `promo_sk`, `sales_amount`, `customers`, `is_open`, `sales_per_customer`
+- `fact_sales_forecast`: `forecast_sk`, `store_sk`, `date_sk`, `forecast_date`, `predicted_sales`, `actual_sales`, `forecast_error`, `forecast_error_pct`
+
+### Rossmann snapshot table
+
+The `snapshots/retail` folder is used for snapshot models such as `store_competition_history`. This snapshot can track changes in store attributes over time, such as competition distance or promotion-related fields.
+
+### Rossmann analytics use cases
+
+The retail mart is designed to answer:
+
+- sales by day, week, month, and quarter,
+- customer and footfall trends,
+- sales efficiency via sales per customer,
+- open-store availability,
+- weekend versus weekday behavior,
+- holiday and promotion uplift,
+- store comparisons by type and assortment,
+- competition impact,
+- forecast versus actual analysis.
+
+---
+
+## CI/CD Workflow Overview
+
+The repository uses GitHub Actions for validation and promotion.
+
+### Bitcoin workflow
+
+- feature branch pushes validate the project in DEV,
+- merges to `main` trigger CD,
+- TEST is used as the integration release target,
+- PROD remains protected behind GitHub Environment approval.
+
+### Rossmann workflow direction
+
+The Rossmann project follows the same delivery pattern:
+
+- DEV validation for model changes,
+- TEST deployment for release verification,
+- PROD promotion only after approval.
+
+### Workflow files
+
+- [.github/workflows/ci-workflow.yml](.github/workflows/ci-workflow.yml)
+- [.github/workflows/cd-workflow.yml](.github/workflows/cd-workflow.yml)
+
+---
+
+## Environment Setup
+
+### Local setup
 
 ```bash
-# Create and activate virtual environment
 python -m venv .venv_sf_dbt
 .venv_sf_dbt\Scripts\activate
-
-# Install dependencies
 pip install dbt-core==1.11.11 dbt-snowflake==1.11.2
-
-# Verify
-dbt --version
-
-# Test Snowflake connection
-cd snowflake_dbt_analytics
-dbt debug
 ```
+
+### Validate the project
+
+```bash
+cd snowflake_dbt_analytics
+ dbt debug
+ dbt deps
+ dbt run
+ dbt test
+```
+
+### Snowflake environments
+
+Use separate database targets for DEV, TEST, and PROD, each with its own credentials and warehouse settings.
+
+---
+
+## Required GitHub Secrets and Variables
+
+The workflows expect Snowflake connection values to be stored as repository secrets.
+
+### Common secrets
+
+- `SNOWFLAKE_ACCOUNT`
+- `SNOWFLAKE_USER`
+- `SNOWFLAKE_ROLE`
+- `SNOWFLAKE_WAREHOUSE`
+- `SNOWFLAKE_PRIVATE_KEY_B64`
+
+### Environment-specific secrets
+
+- `SNOWFLAKE_DATABASE_DEV`
+- `SNOWFLAKE_DATABASE_TEST`
+- `SNOWFLAKE_DATABASE_PROD`
+
+### Optional variables for future retail setup
+
+If you add Rossmann ingestion automation, you may also want to store Kaggle or stage-related configuration separately, for example a Kaggle token in a secure location outside the repo.
+
+---
+
+## Deployment Process
+
+### Bitcoin project
+
+1. Commit changes on a feature branch.
+2. Open a pull request.
+3. Run DEV validation.
+4. Merge into `main`.
+5. CD promotes to TEST.
+6. Approve PROD deployment through GitHub Environment protection.
+
+### Rossmann project
+
+1. Download Kaggle data and load it into Snowflake landing tables.
+2. Build and test staging models.
+3. Add intermediate and mart models.
+4. Validate with dbt tests.
+5. Promote the release through the same GitHub Actions workflow.
+
+---
+
+## Learning Notes
+
+This repository includes:
+
+- real Snowflake + dbt architecture,
+- layered analytics modeling,
+- source-to-mart transformation design,
+- CI/CD promotion strategy,
+- environment separation across DEV / TEST / PROD,
+- data-quality testing,
+- business-friendly marts for BI and forecasting.
+
+### Project Narrative
+
+The repository combines two data engineering use cases:
+
+- a blockchain analytics pipeline for Bitcoin,
+- a retail forecasting warehouse for Rossmann sales data.
+
+That combination covers both blockchain and retail use cases.
+
+---
+
+## Learning Outcomes
+
+- Designing analytics warehouses with Snowflake and dbt.
+- Organizing code into staging, intermediate, mart, and source layers.
+- Using GitHub Actions for validation and deployment.
+- Building clear documentation around real business use cases.
+- Translating raw data into BI-ready and forecasting-ready models.
+- Thinking clearly about environment isolation and release promotion.
 
 ---
 
 ## Resources
 
 - [dbt Documentation](https://docs.getdbt.com/docs/introduction)
-- [Snowflake + dbt Guide](https://docs.getdbt.com/docs/core/connect-data-platform/snowflake-setup)
-- [Snowflake Key Pair Authentication](https://docs.snowflake.com/en/user-guide/key-pair-auth)
+- [Snowflake Documentation](https://docs.snowflake.com/)
+- [GitHub Actions Documentation](https://docs.github.com/actions)
+- [Kaggle Rossmann Store Sales](https://www.kaggle.com/competitions/rossmann-store-sales)
 - [AWS Public Blockchain Data](https://registry.opendata.aws/aws-public-blockchain/)
-- [dbt Community Slack](https://community.getdbt.com/)
