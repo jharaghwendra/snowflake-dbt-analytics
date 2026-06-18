@@ -1,0 +1,17 @@
+version: 2
+
+snapshots:
+  - name: store_competition_history
+    relation: ref('dim_store')
+    description: >
+      SCD Type 2 snapshot for store competition attributes.
+      Tracks changes to competition distance and Promo2 participation over time.
+    config:
+      target_schema: MART
+      unique_key: store_id
+      strategy: check
+      check_cols:
+        - competition_distance_m
+        - has_promo2
+      dbt_valid_to_current: "cast('9999-12-31' as timestamp)"
+      invalidate_hard_deletes: true

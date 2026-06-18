@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: fact_daily_sales
+    description: Daily sales fact table at the store and date grain.
+    columns:
+      - name: sales_sk
+        description: Surrogate key for the daily sales fact record.
+        tests:
+          - unique
+          - not_null
+      - name: store_sk
+        description: Foreign key to dim_store.
+        tests:
+          - not_null
+      - name: date_sk
+        description: Foreign key to dim_date.
+        tests:
+          - not_null
+      - name: promo_sk
+        description: Foreign key to dim_promotion.
+        tests:
+          - not_null
+      - name: sales_amount
+        description: Daily revenue.
+      - name: is_open
+        description: Whether the store was open on the sale date.
+      - name: sales_per_customer
+        description: Revenue per customer for the day.
+
+  - name: dim_store
+    description: Store dimension containing store attributes and competition context.
+    columns:
+      - name: store_sk
+        description: Surrogate key for the store dimension.
+        tests:
+          - unique
+          - not_null
+      - name: store_id
+        description: Natural store identifier from the source data.
+        tests:
+          - unique
+          - not_null
+      - name: store_type
+        description: Store format code.
+      - name: assortment
+        description: Assortment category.
+      - name: competition_distance_m
+        description: Distance to the nearest competitor in meters.
+      - name: competition_open_since_year
+        description: Year the competitor opened.
+      - name: competition_open_since_month
+        description: Month the competitor opened.
+      - name: has_promo2
+        description: Whether the store participates in Promo2.
+      - name: promo2_since_week
+        description: Start week for Promo2 participation.
+      - name: promo2_since_year
+        description: Start year for Promo2 participation.
+      - name: promo_interval
+        description: Promo2 interval description.
