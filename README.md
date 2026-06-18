@@ -1,17 +1,17 @@
 # Snowflake dbt Analytics
 
-This repository contains two sample data engineering projects built with **Snowflake**, **dbt Core**, and **GitHub Actions**.
+This repository contains two data engineering projects built with **Snowflake**, **dbt Core**, and **GitHub Actions**.
 
 1. **Bitcoin Data Analytics Pipeline** - a Snowflake + dbt pipeline for blockchain transaction data.
 2. **Rossmann Store Sales Analytics Project** - a Snowflake + dbt pipeline for retail warehouse design based on the public Kaggle Rossmann Store Sales dataset.
 
-The repository is organized so that someone can study the folder structure, dbt layers, Snowflake setup, and workflow files in one place.
+The repository is organized so that the folder structure, dbt layers, Snowflake setup, and workflow files are easy to follow in one place.
 
 ---
 
 ## Overview
 
-This repository contains examples of loading data into Snowflake, transforming it with dbt, testing it, and moving it through environments with GitHub Actions.
+This repository shows data loading into Snowflake, transformation with dbt, testing, and environment movement with GitHub Actions.
 
 - **Bitcoin project**: public blockchain data loaded into Snowflake and modeled through landing, staging, intermediate, and mart layers.
 - **Rossmann project**: retail sales data modeled into a forecasting-ready Snowflake + dbt warehouse.
@@ -48,7 +48,7 @@ flowchart TB
   GH -. validates / deploys .-> RM_MART
 ```
 
-The Bitcoin pipeline and the Rossmann project both follow the same Snowflake + dbt pattern.
+Both projects follow the same Snowflake + dbt pattern.
 
 ---
 
@@ -98,7 +98,7 @@ flowchart TB
 
 ### Scope
 
-The Rossmann project uses the public **Kaggle Rossmann Store Sales** dataset. It is a retail forecasting warehouse.
+The Rossmann project uses the public **Kaggle Rossmann Store Sales** dataset.
 
 ### Why Rossmann
 
@@ -112,7 +112,7 @@ Rossmann includes:
 
 This makes it suitable for retail forecasting, store performance analysis, and BI reporting.
 
-### Planned Rossmann architecture
+### Rossmann architecture
 
 ```mermaid
 flowchart TB
@@ -126,7 +126,7 @@ flowchart TB
 
 ### Retail use cases
 
-The Rossmann mart is designed to support:
+The Rossmann mart supports:
 
 - total sales by day, week, month, and quarter,
 - customer count and footfall analysis,
@@ -141,7 +141,7 @@ The Rossmann mart is designed to support:
 
 ### Retail star schema
 
-The target retail model design includes:
+The retail model design includes:
 
 - `dim_store`
 - `dim_date`
@@ -175,7 +175,7 @@ The Rossmann implementation is organized into six steps:
 
 ## Snowflake Databases and Schemas
 
-The repository uses the same layered pattern for both domains.
+Both domains use the same layered pattern.
 
 ### Bitcoin project schemas
 
@@ -211,7 +211,7 @@ The Rossmann retail design follows the same warehouse pattern, but with retail-s
 
 ## dbt Model Organization
 
-The repository follows a clear multi-domain structure.
+The repository uses a multi-domain structure.
 
 ```text
 snowflake_dbt_analytics/
@@ -269,11 +269,11 @@ The `seeds/` folder contains small CSV files that dbt can load as tables.
 
 - `seeds/btc_usd_max.csv`: a seed file used by the Bitcoin project for reference data.
 
-If a seed file is not used yet, it can still stay in the repository as sample data for later exercises.
+If a seed file is not used yet, it can still stay in the repository as sample data.
 
 ### Rossmann star schema details
 
-The retail mart is intended to support the following core tables and analytics fields:
+The retail mart includes these core tables and analytics fields:
 
 - `dim_store`: `store_sk`, `store_id`, `store_type`, `assortment`, `competition_distance_m`, `competition_open_since_year`, `competition_open_since_month`, `has_promo2`, `promo2_since_week`, `promo2_since_year`
 - `dim_date`: `date_sk`, `full_date`, `day_of_week`, `day_name`, `week_of_year`, `month_number`, `month_name`, `quarter`, `year`, `is_weekend`, `is_holiday`
@@ -283,7 +283,7 @@ The retail mart is intended to support the following core tables and analytics f
 
 ### Rossmann snapshot table
 
-The `snapshots/retail` folder is used for snapshot models such as `store_competition_history`. This snapshot can track changes in store attributes over time, such as competition distance or promotion-related fields.
+The `snapshots/retail` folder is used for snapshot models such as `store_competition_history.sql`. This snapshot tracks changes in store attributes over time, such as competition distance or promotion-related fields.
 
 ### Rossmann analytics use cases
 
@@ -303,7 +303,7 @@ The retail mart is designed to answer:
 
 ## CI/CD Workflow Overview
 
-The repository uses GitHub Actions for validation and promotion.
+GitHub Actions handles validation and promotion.
 
 ### Bitcoin workflow
 
@@ -396,8 +396,6 @@ If you add Rossmann ingestion automation, you may also want to store Kaggle or s
 4. Validate with dbt tests.
 5. Promote the release through the same GitHub Actions workflow.
 
----
-
 ## Learning Notes
 
 This repository includes:
@@ -412,7 +410,7 @@ This repository includes:
 
 ### Project Narrative
 
-The repository combines two data engineering use cases:
+The repository covers two data engineering use cases:
 
 - a blockchain analytics pipeline for Bitcoin,
 - a retail forecasting warehouse for Rossmann sales data.
