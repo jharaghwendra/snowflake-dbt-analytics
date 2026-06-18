@@ -1,11 +1,7 @@
 name: Snowflake dbt DEV CI
 
 on:
-  push:
-    branches:
-      - 'feature/**'
   workflow_dispatch:
-
     inputs:
       run_dbt_checks:
         description: 'Run Snowflake dbt validation steps'
